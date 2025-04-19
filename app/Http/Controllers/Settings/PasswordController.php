@@ -16,8 +16,13 @@ class PasswordController extends Controller
     /**
      * Show the user's password settings page.
      */
-    public function edit(Request $request): Response
+    public function edit(Request $request): Response|RedirectResponse
     {
+        $user = $request->user()->hasAdminRole();
+        if (!$user) {
+            return redirect()->route('client.profile.edit');
+        }
+        
         return Inertia::render('settings/password', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),

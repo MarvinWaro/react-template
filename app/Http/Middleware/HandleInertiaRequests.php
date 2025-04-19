@@ -67,6 +67,7 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message'),
                 'success'=> fn () => $request->session()->get('success'),
             ],
+            'isClientRoute' => fn () => $request->attributes->get('isClientRoute', false),
         ];
     }
 }

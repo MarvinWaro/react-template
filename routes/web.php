@@ -22,8 +22,6 @@ Route::middleware(['auth', 'verified', RedirectIfActivated::class])->group(funct
 });
 
 Route::middleware(['auth', 'verified', EnsureUserIsActivated::class, 'module.access'])->group(function () {
-    Route::get('/', [ClientDashboardController::class, 'create'])->name('home');
-
     Route::get('dashboard', [DashboardController::class, 'create'])
         ->name('dashboard');
 
@@ -72,6 +70,6 @@ Route::middleware(['auth', 'verified', EnsureUserIsActivated::class, 'module.acc
         ->name('modules.delete-module');
 });
 
-require __DIR__ . '/client-settings.php';
+require __DIR__ . '/client-web.php';
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

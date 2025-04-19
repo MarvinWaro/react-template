@@ -41,6 +41,7 @@ export interface SharedData {
         info?: string;
         message?: string;
     }
+    isClientRoute: boolean;
     [key: string]: unknown;
 }
 

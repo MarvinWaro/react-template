@@ -1,5 +1,5 @@
 import Heading from '@/components/heading';
-import AppLayout from '@/layouts/client-app-layout';
+import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
 
 export default function ClientDashboard() {

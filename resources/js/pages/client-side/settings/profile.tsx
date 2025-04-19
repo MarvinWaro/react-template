@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useInitials } from '@/hooks/use-initials';
-import AppLayout from '@/layouts/client-app-layout';
+import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/client-layout';
 import { toast } from 'sonner';
 

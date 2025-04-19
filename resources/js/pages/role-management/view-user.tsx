@@ -130,7 +130,8 @@ const ViewUser: React.FC<ViewUserProps> = ({ user, roles }) => {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="View User" />
+            <Head title={`${user.name}`} />
+            
             <div className="px-4 py-6">
                 <Heading title="View User" description={`User #${user.name}`} />
                 <div className="flex h-full flex-1 flex-col gap-4 rounded-xl">

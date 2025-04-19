@@ -18,8 +18,13 @@ class ProfileController extends Controller
     /**
      * Show the user's profile settings page.
      */
-    public function edit(Request $request): Response
+    public function edit(Request $request): Response|RedirectResponse
     {
+        $user = $request->user()->hasAdminRole();
+        if (!$user) {
+            return redirect()->route('client.profile.edit');
+        }
+
         return Inertia::render('settings/profile', [
             'mustVerifyEmail' => !$request->user()->hasVerifiedEmail(),
             'status' => $request->session()->get('status'),

@@ -98,7 +98,7 @@ export default function RolePermissions({ role, modules }: RolePermissionsProps)
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Roles" />
+            <Head title={`Manage ${role.name} Role`} />
             <div className="px-4 py-6">
                 <div className="mb-8 flex flex-col space-y-0.5">
                     <input

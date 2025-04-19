@@ -101,7 +101,7 @@ export default function ManageModule({ module, roles }: ManageModuleProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Roles" />
+            <Head title={`Manage ${module.name} Module`} />
             <div className="px-4 py-6">
                 <div className="mb-8 flex flex-col space-y-0.5">
                     <input
