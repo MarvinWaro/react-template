@@ -13,7 +13,10 @@ interface AppLayoutProps {
 export default function AppLayout({ children, breadcrumbs, ...props }: AppLayoutProps) {
     const { isClientRoute, auth } = usePage<SharedData>().props;
 
-    const LayoutComponent = isClientRoute || !auth.is_admin ? AppLayoutTemplateClient : AppLayoutTemplate;
+    const isSuperUser = auth.user?.superstaff;
+    const isAdmin = auth.is_admin;
+
+    const LayoutComponent = isClientRoute ? AppLayoutTemplateClient : isAdmin || isSuperUser ? AppLayoutTemplate : AppLayoutTemplateClient;
 
     return (
         <LayoutComponent breadcrumbs={breadcrumbs} {...props}>

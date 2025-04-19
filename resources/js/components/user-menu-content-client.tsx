@@ -19,7 +19,7 @@ export function ClientUserMenuContent({ auth }: ClientUserMenuContentProps) {
                     <UserInfo user={auth.user} showEmail={true} />
                 </div>
             </DropdownMenuLabel>
-            {auth.is_admin && (
+            {auth.is_admin || auth.user.superstaff && (
                 <>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>

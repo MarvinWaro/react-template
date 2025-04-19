@@ -13,10 +13,12 @@ class DashboardController extends Controller
 {
     public function create(Request $request): InertiaResponse|RedirectResponse
     {
-        $user = $request->user()->hasAdminRole();
-        if (!$user) {
+        $user = $request->user();
+    
+        if (!($user->hasAdminRole() || $user->superstaff)) {
             return redirect()->route('home');
         }
+    
         return Inertia::render('dashboard');
     }
 }
