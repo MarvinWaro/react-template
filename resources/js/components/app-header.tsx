@@ -23,13 +23,7 @@ const mainNavItems: NavItem[] = [
         href: '/',
         icon: LayoutGrid,
         routes: ['/'],
-    },
-        {
-        title: 'Dashboard',
-        href: '/c/settings/profile',
-        icon: LayoutGrid,
-        routes: ['/c/settings/profile'],
-    },
+    }
 ];
 
 interface AppHeaderProps {
