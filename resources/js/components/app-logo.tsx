@@ -14,7 +14,7 @@ function AppLogoComponent() {
             </div>
             <div className="grid flex-1 text-left text-sm">
                 <span className="truncate font-bold">{appCompany}</span>
-                <span className="truncate text-gray-800">{appName}</span>
+                <span className="truncate text-gray-800 dark:text-gray-400">{appName}</span>
             </div>
         </>
     );

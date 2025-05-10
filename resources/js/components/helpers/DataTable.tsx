@@ -301,20 +301,20 @@ export function DataTable<T extends { id: number }>({
                 {/* Table */}
                 <div className={tableParentClassName}>
                     <Table className={tableClassName} id={name} ref={tableRef}>
-                        <TableHeader className="bg-gray-100">
-                            <TableRow>
+                        <TableHeader className="bg-gray-100 dark:bg-transparent">
+                            <TableRow className='dark:hover:bg-gray-50/10'>
                                 {enableSelect && (
-                                    <TableHead className="text-center py-2.5">
+                                    <TableHead className="text-center py-2.5 text-white">
                                         <Checkbox id="select-all" checked={getCheckedState()} onCheckedChange={toggleSelectAll} />
                                     </TableHead>
                                 )}
 
-                                {enableIndex && <TableHead className="text-center">#</TableHead>}
+                                {enableIndex && <TableHead className="text-center dark:text-white">#</TableHead>}
 
                                 {headers.map(({ key, label }) => (
                                     <TableHead
                                         key={key}
-                                        className="cursor-pointer py-2.5"
+                                        className="cursor-pointer py-2.5 dark:text-white"
                                         onClick={() => {
                                             setSelectedSort(key);
                                             setSortDirection((prev) => (selectedSort === key ? (prev === 'asc' ? 'desc' : 'asc') : 'asc'));
@@ -336,14 +336,14 @@ export function DataTable<T extends { id: number }>({
                                         </div>
                                     </TableHead>
                                 ))}
-                                {actions && <TableHead>Actions</TableHead>}
+                                {actions && <TableHead className='dark:text-white'>Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
 
                         <TableBody>
                             {data.length > 0 ? (
                                 data.map((item, index) => (
-                                    <TableRow key={item.id} className="font-[400] odd:bg-white even:bg-gray-50">
+                                    <TableRow key={item.id} className="font-[400] odd:bg-white even:bg-gray-50 dark:odd:bg-transparent dark:even:bg-transparent dark:hover:bg-gray-50/10">
                                         {enableSelect && (
                                             <TableCell className="text-center w-10 py-2.5">
                                                 <Checkbox
@@ -354,7 +354,7 @@ export function DataTable<T extends { id: number }>({
                                         )}
 
                                         {enableIndex && (
-                                            <TableCell className="text-center w-10 py-2.5">
+                                            <TableCell className="text-center w-10 py-2.5 dark:text-white ">
                                                 <span>{indexFrom + index}</span>
                                             </TableCell>
                                         )}
@@ -362,7 +362,7 @@ export function DataTable<T extends { id: number }>({
                                         {headers.map(({ key }) => {
                                             const custom = customData?.find((c) => c.key === key);
                                             return (
-                                                <TableCell key={key} className="align-middle">
+                                                <TableCell key={key} className="align-middle dark:text-white ">
                                                     {custom ? custom.render(item, index) : String(item[key as keyof T] ?? '')}
                                                 </TableCell>
                                             );
@@ -394,7 +394,7 @@ export function DataTable<T extends { id: number }>({
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={headers.length + (enableSelect ? 1 : 0) + (actions ? 1 : 0) + (enableIndex ? 1 : 0)} className="text-center py-2.5">
+                                    <TableCell colSpan={headers.length + (enableSelect ? 1 : 0) + (actions ? 1 : 0) + (enableIndex ? 1 : 0)} className="text-center py-2.5 dark:text-white">
                                         No records found.
                                     </TableCell>
                                 </TableRow>

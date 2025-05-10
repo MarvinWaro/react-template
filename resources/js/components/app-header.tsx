@@ -24,6 +24,12 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
         routes: ['/'],
     },
+        {
+        title: 'Dashboard',
+        href: '/c/settings/profile',
+        icon: LayoutGrid,
+        routes: ['/c/settings/profile'],
+    },
 ];
 
 interface AppHeaderProps {
@@ -113,7 +119,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                     {auth.user ? (
                                         <>
                                             <div className="mr-3 flex flex-col text-end">
-                                                <span className="text-sm font-semibold text-gray-600">{auth.user.name}</span>
+                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">{auth.user.name}</span>
                                                 <span className="text-xs text-gray-400">{auth.user.email}</span>
                                             </div>
                                             <DropdownMenu>
@@ -155,7 +161,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                 </div>
             </div>
             <div className="border-sidebar-border/80 sticky top-0 z-50 border-b pb-2 md:pb-0">
-                <div className="mx-auto w-full bg-white md:max-w-7xl">
+                <div className="mx-auto w-full bg-white dark:bg-background md:max-w-7xl">
                     <div className="ml-2 hidden items-center space-x-6 md:flex md:justify-between">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="relative flex h-full items-stretch space-x-2">
@@ -167,8 +173,8 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 href={item.href}
                                                 className={cn(
                                                     navigationMenuTriggerStyle(),
-                                                    'relative h-9 cursor-pointer px-3',
-                                                    isActive && 'text-[#3b5998]',
+                                                    'relative h-9 cursor-pointer px-3 hover:bg-[#151515]',
+                                                    isActive && 'text-[#3b5998] dark:text-[#6393fa] dark:bg-[#151515]',
                                                 )}
                                             >
                                                 {item.icon && <Icon iconNode={item.icon} className="mr-2 h-4 w-4" />}
@@ -177,7 +183,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             {isActive && (
                                                 <motion.div
                                                     layoutId="nav-underline"
-                                                    className="absolute bottom-0 left-0 z-50 h-[2px] w-full bg-[#3b5998]"
+                                                    className="absolute bottom-0 left-0 z-50 h-[2px] w-full bg-[#3b5998] dark:bg-[#6393fa]"
                                                     transition={{ type: 'spring', stiffness: 800, damping: 50 }}
                                                 />
                                             )}
