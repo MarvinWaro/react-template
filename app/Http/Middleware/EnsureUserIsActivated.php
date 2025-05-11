@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Auth;
 
 class EnsureUserIsActivated
 {
@@ -15,7 +16,7 @@ class EnsureUserIsActivated
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check() && auth()->user()->activated_at) {
+        if (Auth::check() && Auth::user()->activated_at) {
             return $next($request);
         }
 

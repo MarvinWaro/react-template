@@ -3,15 +3,11 @@
 namespace App\Http\Controllers\RoleManagement;
 
 use App\Models\Role;
-use App\Models\RoleModule;
 use App\Models\Module;
-use App\Models\RoleUser;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Attributes\RoleAccess;
 
@@ -25,7 +21,7 @@ class ModulesController extends Controller
         $sortBy = $request->query('sortBy');
         $sortDirection = $request->query('sortDirection');
 
-        $sortFields = ['id', 'name', 'description', 'created_at'];
+        $sortFields = ['id', 'order', 'name', 'description', 'created_at'];
         $perPagesDropdown = [5, 10, 25, 50, 100];
 
         $perPage = (int) $request->query('perPage', $perPagesDropdown[0]);
@@ -34,7 +30,7 @@ class ModulesController extends Controller
             $perPage = array_key_first($perPagesDropdown);
         }
 
-        $query = Module::with('roles.users');
+        $query = Module::with(['roles.users', 'parent']);
 
         if ($search) {
             $term = ltrim($search, '!');
@@ -54,6 +50,7 @@ class ModulesController extends Controller
 
         $modules->getCollection()->transform(function ($module) {
             $module->users = $module->roles->flatMap->users->unique('id')->values();
+            $module->parent_name = $module->parent?->name;
             return $module;
         });
 
@@ -100,60 +97,60 @@ class ModulesController extends Controller
         return Inertia::render('role-management/manage-module', $context);
     }
 
-    #[RoleAccess('Modules')]
-    public function updateModulePermissions(Request $request): RedirectResponse
-    {
-        $moduleId = $request->moduleId;
+    // #[RoleAccess('Modules')]
+    // public function updateModulePermissions(Request $request): RedirectResponse
+    // {
+    //     $moduleId = $request->moduleId;
 
-        $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('modules')->ignore($moduleId),
-            ],
-            'description' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-        ]);
+    //     $request->validate([
+    //         'name' => [
+    //             'required',
+    //             'string',
+    //             'max:255',
+    //             Rule::unique('modules')->ignore($moduleId),
+    //         ],
+    //         'description' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //         ],
+    //     ]);
 
-        $rolesId = $request->rolesId ?? [];
-        $moduleName = $request->name;
-        $moduleDescription = $request->description;
+    //     $rolesId = $request->rolesId ?? [];
+    //     $moduleName = $request->name;
+    //     $moduleDescription = $request->description;
 
-        DB::transaction(function () use ($moduleId, $rolesId, $moduleName, $moduleDescription) {
-            foreach ($rolesId as $roleId) {
-                $existing = RoleModule::withTrashed()
-                    ->where('role_id', $roleId)
-                    ->where('module_id', $moduleId)
-                    ->first();
+    //     DB::transaction(function () use ($moduleId, $rolesId, $moduleName, $moduleDescription) {
+    //         foreach ($rolesId as $roleId) {
+    //             $existing = RoleModule::withTrashed()
+    //                 ->where('role_id', $roleId)
+    //                 ->where('module_id', $moduleId)
+    //                 ->first();
 
-                if ($existing) {
-                    $existing->restore();
-                } else {
-                    RoleModule::create([
-                        'role_id' => $roleId,
-                        'module_id' => $moduleId,
-                    ]);
-                }
-            }
+    //             if ($existing) {
+    //                 $existing->restore();
+    //             } else {
+    //                 RoleModule::create([
+    //                     'role_id' => $roleId,
+    //                     'module_id' => $moduleId,
+    //                 ]);
+    //             }
+    //         }
 
-            RoleModule::where('module_id', $moduleId)
-                ->whereNotIn('role_id', $rolesId)
-                ->whereNull('deleted_at')
-                ->delete();
+    //         RoleModule::where('module_id', $moduleId)
+    //             ->whereNotIn('role_id', $rolesId)
+    //             ->whereNull('deleted_at')
+    //             ->delete();
 
-            Module::where('id', $moduleId)
-                ->update([
-                    'name' => $moduleName,
-                    'description' => $moduleDescription,
-                ]);
-        });
+    //         Module::where('id', $moduleId)
+    //             ->update([
+    //                 'name' => $moduleName,
+    //                 'description' => $moduleDescription,
+    //             ]);
+    //     });
 
-        return redirect()->back()->with('success', 'Module updated successfully.');
-    }
+    //     return redirect()->back()->with('success', 'Module updated successfully.');
+    // }
 
     #[RoleAccess('Modules')]
     public function createModule(Request $request): RedirectResponse

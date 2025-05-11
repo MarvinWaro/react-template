@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\RoleManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\Module;
 use App\Models\Role;
 use App\Models\RoleUser;
 use App\Models\User;
@@ -17,13 +16,12 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Inertia\Response as InertiaResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use App\Attributes\RoleAccess;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
-    private $moduleName = 'Users';
-
     #[RoleAccess('Users')]
     public function create(Request $request): InertiaResponse|RedirectResponse
     {
@@ -148,7 +146,7 @@ class UserController extends Controller
     {
         $id = $request->route('id');
 
-        $currentUser = auth()->user();
+        $currentUser = Auth::user();
 
         if ($currentUser->id === (int) $id) {
             return redirect()->back()->with('error', 'You cannot delete your own account.');
@@ -190,8 +188,8 @@ class UserController extends Controller
             ];
 
             if ($request->hasFile('new_avatar')) {
-                if ($user->avatar && \Storage::disk('public')->exists($user->avatar)) {
-                    \Storage::disk('public')->delete($user->avatar);
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
                 }
 
                 $avatarPath = $request->file('new_avatar')->store('avatars', 'public');

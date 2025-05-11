@@ -54,7 +54,6 @@ type AddUserForm = {
 };
 
 export default function Users({ users, tableData, allUsersCount }: UsersProps) {
-    console.log(users.data);
     const { auth } = usePage<SharedData>().props;
     const getInitials = useInitials();
 

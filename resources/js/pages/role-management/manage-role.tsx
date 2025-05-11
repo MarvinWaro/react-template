@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
 import { toast } from 'sonner';
 
 type Role = {
@@ -13,20 +12,24 @@ type Role = {
     description: string;
     created_at: string;
     updated_at: string;
-    role_modules: {
-        id: string;
-        module_id: string;
-    }[];
     for_admin: boolean;
+    permissions: Record<string, string[]>;
 };
 
-type Module = {
+interface Module {
     id: string;
     name: string;
+    icon: string;
+    path: string;
+    order: number;
+    is_client: boolean;
     description: string;
     created_at: string;
     updated_at: string;
-};
+
+    available_actions: string[];
+    children?: Module[];
+}
 
 interface RolePermissionsProps {
     role: Role;
@@ -38,7 +41,7 @@ type ManageRoleForm = {
     description: string;
     for_admin: boolean;
     roleId: string;
-    modulesId: string[];
+    permissions: Record<string, string[]>;
 };
 
 export default function RolePermissions({ role, modules }: RolePermissionsProps) {
@@ -53,27 +56,30 @@ export default function RolePermissions({ role, modules }: RolePermissionsProps)
         },
     ];
 
-    const handleToggle = (moduleId: string, checked: boolean) => {
+    const handleToggle = (moduleId: string, action: string, checked: boolean) => {
         setData((prev) => {
-            const updated = checked ? [...prev.modulesId, moduleId] : prev.modulesId.filter((id) => id !== moduleId);
+            const current = prev.permissions[moduleId] || [];
+            const updated = checked ? Array.from(new Set([...current, action])) : current.filter((a) => a !== action);
 
-            setSelectAll(updated.length === modules.length ? true : updated.length === 0 ? false : 'indeterminate');
-
-            return { ...prev, modulesId: updated };
+            return {
+                ...prev,
+                permissions: {
+                    ...prev.permissions,
+                    [moduleId]: updated,
+                },
+            };
         });
     };
 
-    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<Required<ManageRoleForm>>({
+    const defaultPermissions: Record<string, string[]> = role.permissions ?? {};
+
+    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<ManageRoleForm>({
         name: role.name,
         description: role.description,
         for_admin: role.for_admin,
         roleId: role.id,
-        modulesId: role.role_modules.map((m) => m.module_id),
+        permissions: defaultPermissions,
     });
-
-    const [selectAll, setSelectAll] = useState<boolean | 'indeterminate'>(
-        data.modulesId.length === modules.length ? true : data.modulesId.length === 0 ? false : 'indeterminate',
-    );
 
     const handleSubmit = () => {
         const promise = new Promise<void>((resolve, reject) => {
@@ -95,6 +101,11 @@ export default function RolePermissions({ role, modules }: RolePermissionsProps)
             duration: 5000,
         });
     };
+
+    // TODO: delete module_permissions if data.for_admin is false.
+    // TODO: update manage modules.
+    // TODO: integrate the module routes to client side.
+    // TODO: integrate unpic images to avatars.
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -118,22 +129,13 @@ export default function RolePermissions({ role, modules }: RolePermissionsProps)
                     />
                 </div>
                 <div className="flex flex-col gap-3">
-                    <div className="flex w-max items-center gap-2 border-b pb-2 text-sm font-medium">
+                    <div className="mb-4 flex w-max items-center gap-2 border-b pb-2 text-sm font-medium">
                         <Checkbox
                             id="for-admin"
                             checked={data.for_admin ? true : false}
                             onCheckedChange={(checked) => {
                                 const isChecked = !!checked;
                                 setData('for_admin', isChecked);
-
-                                if (isChecked) {
-                                    const allIds = modules.map((m) => m.id);
-                                    setData('modulesId', allIds);
-                                    setSelectAll(true);
-                                } else {
-                                    setData('modulesId', []);
-                                    setSelectAll(false);
-                                }
                             }}
                         />
                         <label
@@ -143,41 +145,54 @@ export default function RolePermissions({ role, modules }: RolePermissionsProps)
                             Can access admin dashboard
                         </label>
                     </div>
-                    <div className="flex w-max items-center gap-2 border-b pb-2 text-sm font-medium">
-                        <Checkbox
-                            id="select-all-modules"
-                            checked={selectAll}
-                            onCheckedChange={(checked) => {
-                                const isChecked = !!checked;
+                    {data.for_admin ? (
+                        modules.map((module) => {
+                            const renderModule = (mod: Module, indentLevel = 0) => {
+                                const actions = mod.available_actions ?? [];
+                                const modulePermissions = data.permissions[mod.id] ?? [];
+                                const indentStyle = indentLevel > 0 ? { marginLeft: `${indentLevel * 1.5}rem`, marginTop: '10px' } : {};
 
-                                setSelectAll(isChecked);
-                                setData('modulesId', isChecked ? modules.map((m) => m.id) : []);
-                            }}
-                            disabled={!data.for_admin}
-                        />
-                        <label
-                            htmlFor="select-all-modules"
-                            className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            Select All
-                        </label>
-                    </div>
-                    {modules.map((module) => (
-                        <div key={module.id} className="flex items-center gap-2 text-sm font-medium">
-                            <Checkbox
-                                id={module.id}
-                                checked={data.modulesId.includes(module.id)}
-                                onCheckedChange={(checked) => handleToggle(module.id, !!checked)}
-                                disabled={!data.for_admin}
-                            />
-                            <label
-                                htmlFor={module.id}
-                                className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                                {module.name}
-                            </label>
+                                return (
+                                    <div key={mod.id} className={`mb-4 ${indentLevel == 0 && 'border-b'} pb-2`} style={indentStyle}>
+                                        <p className="mb-2 text-sm font-semibold">{mod.name}</p>
+                                        <div className="flex flex-wrap gap-4">
+                                            {actions.map((action) => {
+                                                const checkboxId = `${mod.id}-${action}`;
+                                                const isChecked = modulePermissions.includes(action);
+
+                                                return (
+                                                    <div key={checkboxId} className="flex items-center gap-2">
+                                                        <Checkbox
+                                                            id={checkboxId}
+                                                            checked={isChecked}
+                                                            onCheckedChange={(checked) => {
+                                                                handleToggle(mod.id, action, !!checked);
+                                                            }}
+                                                            disabled={!data.for_admin}
+                                                        />
+                                                        <label htmlFor={checkboxId} className="text-sm font-medium">
+                                                            {action.replace('can_', '').replace('_', ' ').toUpperCase()}
+                                                        </label>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {mod.children
+                                            ? mod.children?.length > 0 && mod.children.map((child) => renderModule(child, indentLevel + 1))
+                                            : null}
+                                    </div>
+                                );
+                            };
+
+                            return renderModule(module);
+                        })
+                    ) : (
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">This role is not allowed to access the admin dashboard.</p>
                         </div>
-                    ))}
+                    )}
+
                     <div className="mt-4 flex items-center gap-2">
                         <Button
                             type="button"

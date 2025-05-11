@@ -8,76 +8,84 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import { usePermissions } from '@/hooks/use-permissions';
 import { isRouteActive } from '@/lib/utils';
-import { SharedData, type NavGroup } from '@/types';
+import { iconMap } from '@/pages/role-management/modules';
+import { NavigationModule, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 
-export function NavMain({ items = [] }: { items: NavGroup[] }) {
-    const { auth } = usePage<SharedData>().props;
+export function NavMain() {
+    const { navigations } = usePage<SharedData>().props;
+    const page = usePage();
+    const { canView } = usePermissions();
 
-    const accessibleModules = auth.modules ?? [];
-
-    const isModuleAccessible = (moduleName: string) => {
-        return accessibleModules.includes(moduleName);
+    const isModuleAccessible = (moduleName: string): boolean => {
+        return canView(moduleName);
     };
 
-    const page = usePage();
+    return Object.entries(navigations).map(([groupTitle, modules]) => {
+        const accessibleItems = modules.filter((mod: NavigationModule) => isModuleAccessible(mod.name));
 
-    return items
-        .filter(
-            (group) => group.items.some((item) => isModuleAccessible(item.title)),
-        )
-        .map((items) => (
-            <SidebarGroup key={items.title}>
-                <SidebarGroupLabel>{items.title}</SidebarGroupLabel>
+        if (accessibleItems.length === 0) return null;
+
+        return (
+            <SidebarGroup key={groupTitle}>
+                <SidebarGroupLabel>{groupTitle}</SidebarGroupLabel>
                 <SidebarMenu>
-                    {items.items
-                    .filter((item) => isModuleAccessible(item.title))
-                    .map((item) =>
-                        item.subItems && item.subItems.length > 0 ? (
-                            <Collapsible
-                                key={item.title}
-                                asChild
-                                defaultOpen={item.href === page.url || item.subItems?.some((sub) => sub.href === page.url)}
-                                className="group/collapsible"
-                            >
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton tooltip={item.title} isActive={isRouteActive(page.url, item.href, item.routes)}>
-                                            {item.icon && <item.icon />}
-                                            <span>{item.title}</span>
-                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {item.subItems.map((subItem) => (
-                                                <SidebarMenuSubItem key={subItem.title}>
-                                                    <SidebarMenuSubButton asChild isActive={isRouteActive(page.url, subItem.href)}>
-                                                        <Link href={subItem.href} prefetch>
-                                                            <span>{subItem.title}</span>
-                                                        </Link>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-                        ) : (
-                            <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton tooltip={item.title} isActive={isRouteActive(page.url, item.href, item.routes)} asChild>
-                                    <Link href={item.href} prefetch>
-                                        {item.icon && <item.icon />}
-                                        <span>{item.title}</span>
+                    {accessibleItems.map((module: NavigationModule) => {
+                        const Icon = module.icon ? iconMap[module.icon] : null;
+
+                        const accessibleSubItems = module.children?.filter((sub: NavigationModule) => isModuleAccessible(sub.name)) ?? [];
+
+                        if (accessibleSubItems.length > 0) {
+                            return (
+                                <Collapsible
+                                    key={module.id}
+                                    asChild
+                                    defaultOpen={module.path === page.url || accessibleSubItems.some((sub) => sub.path === page.url)}
+                                    className="group/collapsible"
+                                >
+                                    <SidebarMenuItem>
+                                        <CollapsibleTrigger asChild>
+                                            <SidebarMenuButton tooltip={module.name} isActive={isRouteActive(page.url, module.path)}>
+                                                {Icon}
+                                                <span>{module.name}</span>
+                                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                            </SidebarMenuButton>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                            <SidebarMenuSub>
+                                                {accessibleSubItems.map((sub: NavigationModule) => (
+                                                    <SidebarMenuSubItem key={sub.id}>
+                                                        <SidebarMenuSubButton asChild isActive={isRouteActive(page.url, sub.path)}>
+                                                            <Link href={sub.path ?? '#'} prefetch>
+                                                                <span>{sub.name}</span>
+                                                            </Link>
+                                                        </SidebarMenuSubButton>
+                                                    </SidebarMenuSubItem>
+                                                ))}
+                                            </SidebarMenuSub>
+                                        </CollapsibleContent>
+                                    </SidebarMenuItem>
+                                </Collapsible>
+                            );
+                        }
+
+                        return (
+                            <SidebarMenuItem key={module.id}>
+                                <SidebarMenuButton tooltip={module.name} isActive={isRouteActive(page.url, module.path)} asChild>
+                                    <Link href={module.path ?? '#'} prefetch>
+                                        {Icon}
+                                        <span>{module.name}</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
-                        ),
-                    )}
+                        );
+                    })}
                 </SidebarMenu>
             </SidebarGroup>
-        ));
+        );
+    });
 }

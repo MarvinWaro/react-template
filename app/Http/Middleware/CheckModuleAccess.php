@@ -26,7 +26,6 @@ class CheckModuleAccess
 
             $reflection = new ReflectionMethod($controllerClass, $method);
             $attributes = $reflection->getAttributes(RoleAccess::class);
-
             foreach ($attributes as $attribute) {
                 $roleAccess = $attribute->newInstance();
                 $moduleName = $roleAccess->moduleName;

@@ -26,16 +26,17 @@ class AuthServiceprovider extends ServiceProvider
                 return true;
             }
 
-            return DB::table('role_user')
-                ->join('role_module', 'role_user.role_id', '=', 'role_module.role_id')
-                ->join('modules', 'role_module.module_id', '=', 'modules.id')
-                ->join('roles', 'role_user.role_id', '=', 'roles.id')
+            return DB::table('module_permissions')
+                ->join('modules', 'module_permissions.module_id', '=', 'modules.id')
+                ->join('roles', 'module_permissions.role_id', '=', 'roles.id')
+                ->join('role_user', 'role_user.role_id', '=', 'roles.id')
+                ->where('module_permissions.name', 'can_view')
+                ->where('modules.name', $moduleName)
+                ->where('role_user.user_id', $user->id)
+                ->whereNull('module_permissions.deleted_at')
+                ->whereNull('modules.deleted_at')
                 ->whereNull('roles.deleted_at')
                 ->whereNull('role_user.deleted_at')
-                ->whereNull('role_module.deleted_at')
-                ->whereNull('modules.deleted_at')
-                ->where('role_user.user_id', $user->id)
-                ->where('modules.name', $moduleName)
                 ->exists();
         });
     }

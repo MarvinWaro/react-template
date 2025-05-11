@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { User, type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -28,7 +29,7 @@ interface Role {
     created_at: string;
     updated_at: string;
     users: User[];
-};
+}
 
 interface RoleProps {
     roles: {
@@ -60,6 +61,8 @@ type AddRoleForm = {
 };
 
 export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
+    const { canCreate, canUpdate, canDelete } = usePermissions();
+
     const [openUsersModal, setOpenUsersModal] = useState(false);
     const [modalUsers, setModalUsers] = useState<User[]>([]);
     const [currentRoleName, setCurrentRoleName] = useState<string>('');
@@ -123,64 +126,66 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
             <div className="px-4 py-6">
                 <Heading title="Roles" description="Manage the roles and permissions for your users" />
                 <div className="flex flex-col gap-2">
-                    <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
-                        <DialogTrigger asChild>
-                            <Button className="w-max">
-                                <Plus />
-                                Add Role
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Add Role</DialogTitle>
-                                <DialogDescription>Fill out the form below to create a new role.</DialogDescription>
-                            </DialogHeader>
-                            <form className="flex flex-col gap-6" onSubmit={submitAddRole}>
-                                <div className="grid gap-6">
-                                    <div className="grid">
-                                        <div className="flex flex-col gap-2">
-                                            <Label htmlFor="name">Role Name</Label>
-                                            <Input
-                                                id="name"
-                                                type="text"
-                                                required
-                                                tabIndex={0}
-                                                autoComplete="name"
-                                                value={data.name}
-                                                onChange={(e) => setData('name', e.target.value)}
-                                                disabled={processing}
-                                                placeholder="Full name"
-                                            />
+                    {canCreate('Roles') && (
+                        <Dialog open={openAddModal} onOpenChange={setOpenAddModal}>
+                            <DialogTrigger asChild>
+                                <Button className="w-max">
+                                    <Plus />
+                                    Add Role
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Add Role</DialogTitle>
+                                    <DialogDescription>Fill out the form below to create a new role.</DialogDescription>
+                                </DialogHeader>
+                                <form className="flex flex-col gap-6" onSubmit={submitAddRole}>
+                                    <div className="grid gap-6">
+                                        <div className="grid">
+                                            <div className="flex flex-col gap-2">
+                                                <Label htmlFor="name">Role Name</Label>
+                                                <Input
+                                                    id="name"
+                                                    type="text"
+                                                    required
+                                                    tabIndex={0}
+                                                    autoComplete="name"
+                                                    value={data.name}
+                                                    onChange={(e) => setData('name', e.target.value)}
+                                                    disabled={processing}
+                                                    placeholder="Full name"
+                                                />
+                                            </div>
+                                            <InputError message={errors.name} className="mt-2" />
                                         </div>
-                                        <InputError message={errors.name} className="mt-2" />
-                                    </div>
-                                    <div className="grid">
-                                        <div className="flex flex-col gap-2">
-                                            <Label htmlFor="description">Role Description</Label>
-                                            <Input
-                                                id="description"
-                                                type="text"
-                                                tabIndex={1}
-                                                autoComplete="description"
-                                                value={data.description}
-                                                onChange={(e) => setData('description', e.target.value)}
-                                                disabled={processing}
-                                                placeholder="Description"
-                                            />
-                                        </div>
+                                        <div className="grid">
+                                            <div className="flex flex-col gap-2">
+                                                <Label htmlFor="description">Role Description</Label>
+                                                <Input
+                                                    id="description"
+                                                    type="text"
+                                                    tabIndex={1}
+                                                    autoComplete="description"
+                                                    value={data.description}
+                                                    onChange={(e) => setData('description', e.target.value)}
+                                                    disabled={processing}
+                                                    placeholder="Description"
+                                                />
+                                            </div>
 
-                                        <InputError message={errors.description} className="mt-2" />
+                                            <InputError message={errors.description} className="mt-2" />
+                                        </div>
                                     </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
-                                        {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                                        Create Role
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+                                    <DialogFooter>
+                                        <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
+                                            {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                                            Create Role
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                     <DataTable
                         enableSearch
                         searchDefaultValue={tableData.search}
@@ -218,6 +223,7 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
                                 label: 'Manage Role',
                                 className: 'bg-[#6366f1] hover:bg-[#6366f1]/90',
                                 icon: <ScanFace size={14} />,
+                                showIf: (role) => canUpdate('Roles'),
                                 onClick: (role) => router.visit(route('roles.view', role.id), { preserveScroll: true }),
                             },
                             {
@@ -231,6 +237,7 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
                                 label: 'Delete',
                                 className: 'bg-[#983b3b] hover:bg-[#983b3b]/90',
                                 icon: <Trash2 size={14} />,
+                                showIf: (role) => canDelete('Roles'),
                                 onClick: (role) => deleteRole(role.id),
                             },
                         ]}

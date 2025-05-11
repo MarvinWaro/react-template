@@ -66,6 +66,22 @@ class User extends Authenticatable
         return $this->roles()->where('for_admin', true)->exists();
     }
 
+    public function isSuperStaff(): bool
+    {
+        return $this->superstaff;
+    }
+
+    public function modulePermissions()
+    {
+        return ModulePermission::whereIn('role_id', function ($query) {
+            $query->select('role_id')
+                ->from('role_user')
+                ->where('user_id', $this->id)
+                ->whereNull('deleted_at');
+        })
+            ->whereNull('deleted_at');
+    }
+
     public static function booted()
     {
         static::creating(function ($user) {

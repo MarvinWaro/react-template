@@ -1,16 +1,18 @@
 import Heading from '@/components/heading';
 import { DataTable } from '@/components/helpers/DataTable';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { LoaderCircle, Plus, SquareDashedMousePointer, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutGrid, LoaderCircle, Pi, Plus, SquareDashedMousePointer, Trash2, UserRoundCog, UsersRound } from 'lucide-react';
+import { JSX, useState } from 'react';
 import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -23,9 +25,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Module {
     id: number;
     name: string;
+    icon: string;
+    path: string;
+    order: number;
+    is_client: boolean;
     description: string;
     created_at: string;
     updated_at: string;
+    parent_name: string;
 }
 
 interface ModulesProps {
@@ -173,16 +180,56 @@ export default function Modules({ modules, tableData, allModulesCount }: Modules
                         indexFrom={modules.from}
                         enableIndex
                         headers={[
+                            { key: 'order', label: 'Order' },
+                            { key: 'icon', label: 'Icon' },
                             { key: 'name', label: 'Name' },
                             { key: 'description', label: 'Description' },
+                            { key: 'parent_name', label: 'Parent' },
+                            { key: 'path', label: 'Path' },
+                            { key: 'is_client', label: 'Path Type' },
+                            { key: 'group_title', label: 'Group Title' },
                             { key: 'created_at', label: 'Date Created' },
                         ]}
                         data={modules.data}
                         customData={[
                             {
+                                key: 'order',
+                                render: (module) => <span>{module.order + 1}</span>,
+                            },
+                            {
+                                key: 'icon',
+                                render: (module) => {
+                                    const IconComponent = iconMap[module.icon] ?? null;
+
+                                    return IconComponent ? (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>{IconComponent}</TooltipTrigger>
+                                                <TooltipContent>{module.icon}</TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ) : (
+                                        <span className="text-gray-500">{module.icon}</span>
+                                    );
+                                },
+                            },
+                            {
                                 key: 'description',
                                 render: (module) =>
                                     module.description ? <span>{module.description}</span> : <span className="text-gray-500">No description</span>,
+                            },
+                            {
+                                key: 'path',
+                                render: (module) => (module.path ? <Badge>{module.path}</Badge> : <span className="text-gray-500">No path</span>),
+                            },
+                            {
+                                key: 'is_client',
+                                render: (module) => (module.is_client ? <span>Client</span> : <span>Admin</span>),
+                            },
+                            {
+                                key: 'parent_name',
+                                render: (module) =>
+                                    module.parent_name ? <span>{module.parent_name}</span> : <span className="text-gray-500">No parent</span>,
                             },
                             {
                                 key: 'created_at',
@@ -223,3 +270,11 @@ export default function Modules({ modules, tableData, allModulesCount }: Modules
         </AppLayout>
     );
 }
+
+export const iconMap: Record<string, JSX.Element> = {
+    LayoutGrid: <LayoutGrid size={16} />,
+    UsersRound: <UsersRound size={16} />,
+    UserRoundCog: <UserRoundCog size={16} />,
+    SquareDashedMousePointer: <SquareDashedMousePointer size={16} />,
+    Pi: <Pi size={16} />,
+};

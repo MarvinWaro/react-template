@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class RoleModule extends Model
+class ModulePermission extends Model
 {
     use HasFactory, Notifiable, SoftDeletes;
 
@@ -18,18 +18,24 @@ class RoleModule extends Model
 
     protected $fillable = [
         'role_id',
-        'module_id'
+        'module_id',
+        'name',
     ];
 
     protected $hidden = [
         'deleted_at',
     ];
 
-    protected $table = 'role_module';
+    protected $table = 'module_permissions';
 
     public function module()
     {
-        return $this->belongsTo(Module::class, 'module_id');
+        return $this->belongsTo(Module::class);
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
     }
 
     public static function booted()

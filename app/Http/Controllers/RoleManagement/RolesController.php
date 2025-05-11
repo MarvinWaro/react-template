@@ -4,7 +4,6 @@ namespace App\Http\Controllers\RoleManagement;
 
 use App\Attributes\RoleAccess;
 use App\Models\Role;
-use App\Models\RoleModule;
 use App\Models\Module;
 use App\Models\RoleUser;
 use Illuminate\Http\Request;
@@ -14,6 +13,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\ModulePermission;
+
 
 class RolesController extends Controller
 {
@@ -130,16 +131,29 @@ class RolesController extends Controller
     {
         $roleId = $request->route('id');
 
-        $role = Role::with(['roleModules.module'])->find($roleId);
+        $role = Role::with(['modulePermissions'])->findOrFail($roleId);
+  
+        $modules = Module::with('children')
+            ->whereNull('parent_id')
+            ->where('is_client', $request->attributes->get('isClientRoute', false))
+            ->orderBy('order')
+            ->get();
 
-        $modules = Module::orderBy('name')->get();
+        $permissions = $role->modulePermissions
+            ->groupBy('module_id')
+            ->map(fn($perms) => $perms->pluck('name')->values())
+            ->toArray();
 
-        $context = [
-            'role' => $role,
-            'modules' => $modules
-        ];
-
-        return Inertia::render('role-management/manage-role', $context);
+        return Inertia::render('role-management/manage-role', [
+            'role' => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'description' => $role->description,
+                'for_admin' => $role->for_admin,
+                'permissions' => $permissions,
+            ],
+            'modules' => $modules,
+        ]);
     }
 
     #[RoleAccess('Roles')]
@@ -159,44 +173,61 @@ class RolesController extends Controller
                 'string',
                 'max:255',
             ],
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'array',
         ]);
 
-        $modulesId = $request->modulesId ?? [];
+        $permissionsInput = $request->permissions ?? [];
         $roleName = $request->name;
         $roleDescription = $request->description;
         $forAdmin = $request->for_admin ?? false;
 
-        DB::transaction(function () use ($roleId, $modulesId, $roleName, $roleDescription, $forAdmin) {
-            foreach ($modulesId as $moduleId) {
-                $existing = RoleModule::withTrashed()
-                    ->where('role_id', $roleId)
-                    ->where('module_id', $moduleId)
-                    ->first();
+        DB::transaction(function () use ($roleId, $permissionsInput, $roleName, $roleDescription, $forAdmin) {
+            $existingPermissions = ModulePermission::withTrashed()
+                ->where('role_id', $roleId)
+                ->get()
+                ->groupBy(fn($perm) => $perm->module_id . '|' . $perm->name);
 
-                if ($existing) {
-                    $existing->restore();
-                } else {
-                    RoleModule::create([
-                        'role_id' => $roleId,
-                        'module_id' => $moduleId,
-                    ]);
+            $submittedKeys = [];
+
+            foreach ($permissionsInput as $moduleId => $actions) {
+                foreach ($actions as $action) {
+                    $key = "$moduleId|$action";
+                    $submittedKeys[] = $key;
+
+                    if (isset($existingPermissions[$key])) {
+                        $existing = $existingPermissions[$key]->first();
+
+                        if ($existing->trashed()) {
+                            $existing->restore();
+                        }
+                    } else {
+                        ModulePermission::create([
+                            'role_id' => $roleId,
+                            'module_id' => $moduleId,
+                            'name' => $action,
+                        ]);
+                    }
                 }
             }
 
-            RoleModule::where('role_id', $roleId)
-                ->whereNotIn('module_id', $modulesId)
-                ->whereNull('deleted_at')
-                ->delete();
+            foreach ($existingPermissions as $key => $records) {
+                if (!in_array($key, $submittedKeys)) {
+                    $activeRecord = $records->firstWhere(fn($r) => !$r->trashed());
+                    if ($activeRecord) {
+                        $activeRecord->delete();
+                    }
+                }
+            }
 
-            Role::where('id', $roleId)
-                ->update([
-                    'name' => $roleName,
-                    'description' => $roleDescription,
-                    'for_admin' => $forAdmin
-                ]);
+            DB::table('roles')->where('id', $roleId)->update([
+                'name' => $roleName,
+                'description' => $roleDescription,
+                'for_admin' => $forAdmin,
+            ]);
         });
 
-        return redirect()->back()->with('success', 'Role updated successfully.');
+        return redirect()->back()->with('success', 'Role permissions updated successfully.');
     }
 
     #[RoleAccess('Roles')]

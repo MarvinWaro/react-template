@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Module;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -39,35 +40,40 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $allModules = DB::table('modules')->pluck('name')->toArray();
+        $user = $request->user();
 
-        $accessibleModules = [];
-    
-        foreach ($allModules as $module) {
-            if (Gate::forUser($request->user())->allows('access-module', $module)) {
-                $accessibleModules[] = $module;
-            }
-        }
+        $permissions = $user?->modulePermissions()
+            ->with('module')
+            ->get()
+            ->groupBy(fn($perm) => $perm->module->name)
+            ->map(fn($items) => $items->pluck('name')->values())
+            ->toArray();
+
+        $rawModules = Module::with('children')
+            ->whereNull('parent_id')
+            ->where('is_client', $request->attributes->get('isClientRoute', false))
+            ->orderBy('order')
+            ->get();
+
+        $modules = $rawModules->groupBy('group_title');
 
         return [
             ...parent::share($request),
             'appCompany' => config('app.company'),
             'appName' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
-                'is_admin' => $request->user()?->hasAdminRole(),
-                'modules' => $accessibleModules,
+                'user' => $user,
+                'is_admin' => $user?->hasAdminRole(),
+                'permissions' => $permissions,
+                'is_super_admin' => $user?->isSuperStaff(),
             ],
-            'ziggy' => fn (): array => [
-                ...(new Ziggy)->toArray(),
-                'location' => $request->url(),
-            ],
+            'navigations' => $modules,
             'sidebarOpen' => $request->cookie('sidebar_state') === 'true',
             'flash' => [
-                'message' => fn () => $request->session()->get('message'),
-                'success'=> fn () => $request->session()->get('success'),
+                'message' => fn() => $request->session()->get('message'),
+                'success' => fn() => $request->session()->get('success'),
             ],
-            'isClientRoute' => fn () => $request->attributes->get('isClientRoute', false),
+            'isClientRoute' => fn() => $request->attributes->get('isClientRoute', false),
         ];
     }
 }

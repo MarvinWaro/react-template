@@ -1,10 +1,22 @@
 import { LucideIcon } from 'lucide-react';
 import type { Config } from 'ziggy-js';
 
+export interface ModulePermissions {
+    can_view: number;
+    can_create: number;
+    can_update: number;
+    can_delete: number;
+    can_export: number;
+    can_print: number;
+}
+
 export interface Auth {
     user: User;
     is_admin: boolean;
-    modules: string[];
+    is_super_admin: boolean;
+    permissions: {
+        [moduleName: string]: ModulePermissions;
+    };
 }
 
 export interface BreadcrumbItem {
@@ -24,6 +36,7 @@ export interface NavItem {
     isActive?: boolean;
     subItems?: NavItem[];
     routes?: string[];
+    permissions?: string[];
 }
 
 export interface SharedData {
@@ -31,6 +44,7 @@ export interface SharedData {
     appName: string;
     name: string;
     // quote: { message: string; author: string };
+    navigations: Record<string, NavigationModule[]>;
     auth: Auth;
     ziggy: Config & { location: string };
     sidebarOpen: boolean;
@@ -40,7 +54,7 @@ export interface SharedData {
         warning?: string;
         info?: string;
         message?: string;
-    }
+    };
     isClientRoute: boolean;
     [key: string]: unknown;
 }
@@ -57,10 +71,16 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
-export interface Module {
+export interface NavigationModule {
     id: string;
     name: string;
-    description: string;
+    icon: string;
+    path: string | null;
+    parent_id: string | null;
+    description?: string;
+    is_client: boolean;
+    available_actions: string[] | null;
     created_at: string;
     updated_at: string;
+    children?: NavigationModule[];
 }

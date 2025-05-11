@@ -35,12 +35,7 @@ class Role extends Model
     public function modules()
     {
         return $this->belongsToMany(Module::class, 'role_module', 'role_id', 'module_id')
-        ->wherePivotNull('deleted_at');
-    }
-
-    public function roleModules()
-    {
-        return $this->hasMany(RoleModule::class, 'role_id');
+            ->wherePivotNull('deleted_at');
     }
 
     public function roleUsers()
@@ -48,15 +43,19 @@ class Role extends Model
         return $this->hasMany(RoleUser::class, 'role_id');
     }
 
+    public function modulePermissions()
+    {
+        return $this->hasMany(ModulePermission::class, 'role_id');
+    }
+
     public static function booted()
     {
-        static::creating(function ($user) {
-            $user->id = (string) Str::uuid();
+        static::creating(function ($table) {
+            $table->id = (string) Str::uuid();
         });
 
-        static::deleting(function ($post) {
-            $post->roleModules()->delete();
-            $post->roleUsers()->delete();
+        static::deleting(function ($table) {
+            $table->roleUsers()->delete();
         });
     }
 }
