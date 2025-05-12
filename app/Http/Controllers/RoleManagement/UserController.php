@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
-    #[RoleAccess('Users')]
+    #[RoleAccess('Users', 'can_view')]
     public function create(Request $request): InertiaResponse|RedirectResponse
     {
         $page = (int) $request->get("page", 1);
@@ -31,6 +31,8 @@ class UserController extends Controller
         $sortBy = $request->query('sortBy');
         $sortDirection = $request->query('sortDirection');
 
+        $defaultSortBy = 'name';
+        $defaultSortDirection = 'asc';
         $sortFields = ['id', 'name', 'email', 'activated_at'];
         $perPagesDropdown = [5, 10, 25, 50, 100];
 
@@ -66,7 +68,7 @@ class UserController extends Controller
         if (in_array($sortBy, $sortFields) && in_array($sortDirection, ['asc', 'desc'])) {
             $query->orderBy($sortBy, $sortDirection);
         } else {
-            $query->orderBy('created_at', 'desc');
+            $query->orderBy($defaultSortBy, $defaultSortDirection);
         }
 
         $allUsers = $query->paginate($perPage)->withQueryString();
@@ -97,7 +99,7 @@ class UserController extends Controller
         return Inertia::render('role-management/users', $context);
     }
 
-    #[RoleAccess('Users')]
+    #[RoleAccess('Users', 'can_create')]
     public function createUser(Request $request): RedirectResponse
     {
         $request->validate([
@@ -122,10 +124,11 @@ class UserController extends Controller
 
         event(new Registered($user));
 
-        return redirect()->back();
+        return redirect()->route('users.view-user', $user->id)
+            ->with('success', 'User created successfully.');
     }
 
-    #[RoleAccess('Users')]
+    #[RoleAccess('Users', 'can_update')]
     public function viewUser(Request $request): Response|RedirectResponse
     {
         $id = $request->route('id');
@@ -141,7 +144,7 @@ class UserController extends Controller
         return Inertia::render('role-management/view-user', $context);
     }
 
-    #[RoleAccess('Users')]
+    #[RoleAccess('Users', 'can_delete')]
     public function deleteUser(Request $request): RedirectResponse
     {
         $id = $request->route('id');
@@ -155,10 +158,10 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $user->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'User deleted successfully.');
     }
 
-    #[RoleAccess('Users')]
+    #[RoleAccess('Users', 'can_update')]
     public function updateUser(Request $request): RedirectResponse
     {
         $id = $request->route('id');

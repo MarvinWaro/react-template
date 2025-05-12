@@ -40,7 +40,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
+        $user = $request->user()->with('roles')->first();
 
         $permissions = $user?->modulePermissions()
             ->with('module')
@@ -72,6 +72,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'message' => fn() => $request->session()->get('message'),
                 'success' => fn() => $request->session()->get('success'),
+                'error' => fn() => $request->session()->get('error'),
             ],
             'isClientRoute' => fn() => $request->attributes->get('isClientRoute', false),
         ];

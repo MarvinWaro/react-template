@@ -7,7 +7,12 @@ use Attribute;
 #[Attribute(Attribute::TARGET_METHOD)]
 class RoleAccess
 {
-    public function __construct(public string $moduleName)
+    public string $module;
+    public string $permission;
+
+    public function __construct(string $module, string $permission = 'can_view')
     {
+        $this->module = $module;
+        $this->permission = $permission;
     }
 }

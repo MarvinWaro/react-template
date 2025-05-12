@@ -22,6 +22,7 @@ import { InertiaPaginate } from './InertiaPaginate';
 type TableHeader = {
     key: string;
     label: string;
+    sortable?: boolean;
 };
 
 type TableAction<T> = {
@@ -96,6 +97,9 @@ type DataTableProps<T extends { id: number }> = {
     /** Enable checkbox-based row selection */
     enableSelect?: boolean;
 
+    /** Callback when selected items change */
+    onSelectionChange?: (items: T[]) => void;
+
     // === Actions ===
 
     /** Render action buttons per row, either declaratively or via function */
@@ -152,6 +156,7 @@ export function DataTable<T extends { id: number }>({
     defaultFilters = [],
 
     enableSelect = false,
+    onSelectionChange,
 
     actions,
 
@@ -173,6 +178,10 @@ export function DataTable<T extends { id: number }>({
     const [selectedItems, setSelectedItems] = useState<T[]>([]);
     const [selectedFilters, setSelectedFilters] = useState<string[]>(defaultFilters || []);
     const [perPage, setPerPage] = useState(defaultPerPage || 5);
+
+    useEffect(() => {
+        onSelectionChange?.(selectedItems);
+    }, [selectedItems, onSelectionChange]);
 
     const toggleSelectAll = (checked: boolean) => {
         setSelectedItems((prev) => {
@@ -238,6 +247,11 @@ export function DataTable<T extends { id: number }>({
         return false;
     };
 
+    const shouldShowActions =
+        typeof actions === 'function'
+            ? true
+            : Array.isArray(actions) && data.some((item) => actions.some((action) => !action.showIf || action.showIf(item)));
+
     return (
         <>
             <div className="flex flex-col gap-2">
@@ -302,50 +316,58 @@ export function DataTable<T extends { id: number }>({
                 <div className={tableParentClassName}>
                     <Table className={tableClassName} id={name} ref={tableRef}>
                         <TableHeader className="bg-gray-100 dark:bg-transparent">
-                            <TableRow className='dark:hover:bg-gray-50/10'>
+                            <TableRow className="dark:hover:bg-gray-50/10">
                                 {enableSelect && (
-                                    <TableHead className="text-center py-2.5 text-white">
+                                    <TableHead className="py-2.5 text-center text-white">
                                         <Checkbox id="select-all" checked={getCheckedState()} onCheckedChange={toggleSelectAll} />
                                     </TableHead>
                                 )}
 
                                 {enableIndex && <TableHead className="text-center dark:text-white">#</TableHead>}
 
-                                {headers.map(({ key, label }) => (
+                                {headers.map(({ key, label, sortable = true }) => (
                                     <TableHead
                                         key={key}
-                                        className="cursor-pointer py-2.5 dark:text-white"
+                                        className={`${sortable && 'cursor-pointer'} py-2.5 dark:text-white ${!enableIndex && 'ps-3'}`}
                                         onClick={() => {
+                                            if (!sortable) return;
                                             setSelectedSort(key);
                                             setSortDirection((prev) => (selectedSort === key ? (prev === 'asc' ? 'desc' : 'asc') : 'asc'));
                                         }}
                                     >
-                                        <div className="flex items-center gap-1">
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger className="cursor-pointer">{label}</TooltipTrigger>
-                                                    <TooltipContent>Click to sort</TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                            {selectedSort === key &&
-                                                (sortDirection === 'asc' ? (
-                                                    <ArrowUpAZ className="ml-1.5 h-4 w-4 text-gray-400" />
-                                                ) : (
-                                                    <ArrowDownZA className="ml-1.5 h-4 w-4 text-gray-400" />
-                                                ))}
-                                        </div>
+                                        {sortable ? (
+                                            <div className="flex items-center gap-1">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger className="cursor-pointer">{label}</TooltipTrigger>
+                                                        <TooltipContent>Click to sort</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                                {selectedSort === key &&
+                                                    (sortDirection === 'asc' ? (
+                                                        <ArrowUpAZ className="ml-1.5 h-4 w-4 text-gray-400" />
+                                                    ) : (
+                                                        <ArrowDownZA className="ml-1.5 h-4 w-4 text-gray-400" />
+                                                    ))}
+                                            </div>
+                                        ) : (
+                                            <span>{label}</span>
+                                        )}
                                     </TableHead>
                                 ))}
-                                {actions && <TableHead className='dark:text-white'>Actions</TableHead>}
+                                {shouldShowActions && <TableHead className="dark:text-white">Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
 
                         <TableBody>
                             {data.length > 0 ? (
                                 data.map((item, index) => (
-                                    <TableRow key={item.id} className="font-[400] odd:bg-white even:bg-gray-50 dark:odd:bg-transparent dark:even:bg-transparent dark:hover:bg-gray-50/10">
+                                    <TableRow
+                                        key={item.id}
+                                        className="font-[400] odd:bg-white even:bg-gray-50 dark:odd:bg-transparent dark:even:bg-transparent dark:hover:bg-gray-50/10"
+                                    >
                                         {enableSelect && (
-                                            <TableCell className="text-center w-10 py-2.5">
+                                            <TableCell className="w-10 py-2.5 text-center">
                                                 <Checkbox
                                                     checked={selectedItems.some((i) => i.id === item.id)}
                                                     onCheckedChange={() => toggleSelectOne(item)}
@@ -354,7 +376,7 @@ export function DataTable<T extends { id: number }>({
                                         )}
 
                                         {enableIndex && (
-                                            <TableCell className="text-center w-10 py-2.5 dark:text-white ">
+                                            <TableCell className="w-10 py-2.5 text-center dark:text-white">
                                                 <span>{indexFrom + index}</span>
                                             </TableCell>
                                         )}
@@ -362,24 +384,24 @@ export function DataTable<T extends { id: number }>({
                                         {headers.map(({ key }) => {
                                             const custom = customData?.find((c) => c.key === key);
                                             return (
-                                                <TableCell key={key} className="align-middle dark:text-white ">
+                                                <TableCell key={key} className={`align-middle dark:text-white ${!enableIndex && 'ps-3'}`}>
                                                     {custom ? custom.render(item, index) : String(item[key as keyof T] ?? '')}
                                                 </TableCell>
                                             );
                                         })}
 
-                                        {actions && (
-                                            <TableCell className="align-middle w-max">
+                                        {shouldShowActions && actions && (
+                                            <TableCell className="w-max align-middle">
                                                 {typeof actions === 'function' ? (
                                                     actions(item)
                                                 ) : (
-                                                    <div className="flex gap-2 ">
+                                                    <div className="flex gap-2">
                                                         {actions.map(({ label, icon, onClick, showIf, className = '' }, idx) =>
                                                             !showIf || showIf(item) ? (
                                                                 <button
                                                                     key={idx}
                                                                     onClick={() => onClick(item)}
-                                                                    className={`flex items-center gap-2 rounded-md px-2 py-0.5 text-sm text-white border-b-2 border-[#0000002f] cursor-pointer transition-all active:border-b-0 ${className}`}
+                                                                    className={`flex cursor-pointer items-center gap-2 rounded-md border-b-2 border-[#0000002f] px-2 py-0.5 text-sm text-white transition-all active:border-b-0 ${className}`}
                                                                 >
                                                                     {icon}
                                                                     {label}
@@ -394,7 +416,10 @@ export function DataTable<T extends { id: number }>({
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={headers.length + (enableSelect ? 1 : 0) + (actions ? 1 : 0) + (enableIndex ? 1 : 0)} className="text-center py-2.5 dark:text-white">
+                                    <TableCell
+                                        colSpan={headers.length + (enableSelect ? 1 : 0) + (shouldShowActions ? 1 : 0) + (enableIndex ? 1 : 0)}
+                                        className="py-2.5 text-center dark:text-white"
+                                    >
                                         No records found.
                                     </TableCell>
                                 </TableRow>

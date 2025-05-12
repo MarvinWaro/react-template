@@ -16,8 +16,15 @@ class Module extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'order',
+        'parent_id',
         'name',
+        'path',
+        'icon',
         'description',
+        'available_actions',
+        'is_client',
+        'group_title',
     ];
 
     protected $hidden = [

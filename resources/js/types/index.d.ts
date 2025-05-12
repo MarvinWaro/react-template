@@ -10,6 +10,15 @@ export interface ModulePermissions {
     can_print: number;
 }
 
+export interface Role {
+    id: string;
+    name: string;
+    description: string;    
+    created_at: string;
+    updated_at: string;
+    for_admin: boolean;
+}
+
 export interface Auth {
     user: User;
     is_admin: boolean;
@@ -68,6 +77,7 @@ export interface User {
     created_at: string;
     updated_at: string;
     activated_at: string | null;
+    roles: Role[];
     [key: string]: unknown; // This allows for additional properties...
 }
 

@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
-import { User, type BreadcrumbItem } from '@/types';
+import { SharedData, User, type BreadcrumbItem } from '@/types';
+import { formatDateFull } from '@/utils/dateHelper';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { LoaderCircle, Plus, ScanFace, Trash2, UsersRound } from 'lucide-react';
@@ -69,24 +70,59 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
     const [currentRoleId, setCurrentRoleId] = useState<number | null>(null);
 
     const [openAddModal, setOpenAddModal] = useState(false);
+    const [idToDelete, setIdToDelete] = useState<number | null>(null);
+    const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
-    const { data, setData, post, processing, errors, reset } = useForm<Required<AddRoleForm>>({
+    const {
+        data,
+        setData,
+        post,
+        delete: deleteInertia,
+        processing,
+        errors,
+        reset,
+    } = useForm<Required<AddRoleForm>>({
         name: '',
         description: '',
     });
 
     const deleteRole = (roleId: number) => {
-        if (confirm('Are you sure you want to delete this role?')) {
-            router.delete(route('roles.delete-role', roleId), {
+        const promise = new Promise<void>((resolve, reject) => {
+            deleteInertia(route('roles.delete-role', roleId), {
                 preserveScroll: true,
-                onSuccess: () => {
-                    alert('Role deleted successfully!');
+                onSuccess: (page) => {
+                    const flash = (page.props as { flash?: SharedData['flash'] }).flash;
+
+                    setOpenDeleteModal(false);
+                    setIdToDelete(null);
+
+                    if (flash?.error) {
+                        reject(flash.error);
+                    } else {
+                        resolve();
+                    }
                 },
-                onError: (errors) => {
-                    alert('Failed to delete role.' + errors.message);
+                onError: () => {
+                    setOpenDeleteModal(false);
+                    setIdToDelete(null);
+                    reject('Failed to delete role.');
                 },
             });
-        }
+        });
+
+        toast.promise(promise, {
+            loading: 'Deleting role...',
+            success: 'Role deleted!',
+            error: (message) => message,
+            duration: 5000,
+            description: formatDateFull(new Date()),
+            descriptionClassName: '!text-gray-500',
+            classNames: {
+                success: '!text-green-700',
+                error: '!text-red-700',
+                loading: '!text-blue-700',
+            },
+        });
     };
 
     const handleOpenModal = (roleName: string, roleId: number, users: User[]) => {
@@ -101,13 +137,20 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
         const promise = new Promise<void>((resolve, reject) => {
             post(route('roles.add-role'), {
                 preserveScroll: true,
-                onSuccess: () => {
+                onSuccess: (page) => {
+                    const flash = (page.props as { flash?: SharedData['flash'] }).flash;
+
                     reset();
-                    resolve();
                     setOpenAddModal(false);
+
+                    if (flash?.error) {
+                        reject(flash.error);
+                    } else {
+                        resolve();
+                    }
                 },
                 onError: () => {
-                    reject();
+                    reject('Failed to create role.');
                 },
             });
         });
@@ -115,8 +158,15 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
         toast.promise(promise, {
             loading: 'Creating role...',
             success: 'Role created successfully!',
-            error: 'Failed to create role!',
+            error: (message) => message,
             duration: 5000,
+            description: formatDateFull(new Date()),
+            descriptionClassName: '!text-gray-500',
+            classNames: {
+                success: '!text-green-700',
+                error: '!text-red-700',
+                loading: '!text-blue-700',
+            },
         });
     };
 
@@ -194,7 +244,7 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
                         headers={[
                             { key: 'name', label: 'Name' },
                             { key: 'description', label: 'Description' },
-                            { key: 'users_count', label: 'Users' },
+                            { key: 'users_count', label: 'Users', sortable: false },
                             { key: 'created_at', label: 'Date Created' },
                         ]}
                         data={roles.data}
@@ -238,7 +288,10 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
                                 className: 'bg-[#983b3b] hover:bg-[#983b3b]/90',
                                 icon: <Trash2 size={14} />,
                                 showIf: (role) => canDelete('Roles'),
-                                onClick: (role) => deleteRole(role.id),
+                                onClick: (role) => {
+                                    setIdToDelete(role.id);
+                                    setOpenDeleteModal(true);
+                                },
                             },
                         ]}
                         dataCount={allRolesCount}
@@ -266,6 +319,23 @@ export default function Roles({ roles, tableData, allRolesCount }: RoleProps) {
                     </div>
                 </DialogContent>
             </Dialog>
+            {idToDelete && (
+                <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Are you absolutely sure?</DialogTitle>
+                            <DialogDescription>
+                                This action cannot be undone. This will permanently delete the role and all its associated permissions.
+                            </DialogDescription>
+                            <DialogFooter>
+                                <Button type="submit" variant={'danger'} onClick={() => deleteRole(idToDelete)}>
+                                    Yes
+                                </Button>
+                            </DialogFooter>
+                        </DialogHeader>
+                    </DialogContent>
+                </Dialog>
+            )}
         </AppLayout>
     );
 }
