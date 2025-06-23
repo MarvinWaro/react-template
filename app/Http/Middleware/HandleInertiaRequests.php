@@ -40,7 +40,8 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user()->with('roles')->first();
+        $user = $request->user();
+        $user?->load('roles');
 
         $permissions = $user?->modulePermissions()
             ->with('module')
@@ -77,4 +78,5 @@ class HandleInertiaRequests extends Middleware
             'isClientRoute' => fn() => $request->attributes->get('isClientRoute', false),
         ];
     }
+
 }
